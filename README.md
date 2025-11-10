@@ -42,6 +42,8 @@ decisions about how to respond to each exchange. Robots all have human names.
 
 The core game logic is written in Python.
 
+**Important** the game should be playable with minimal external dependencies.
+
 We will need to maintain state about:
 
 - Robots:
