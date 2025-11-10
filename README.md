@@ -25,9 +25,9 @@ override code, and unlock the local train station.
 
 `roboworld/models.py` — dataclasses for World, City, Neighborhood, Region, Robot, DialogNode, DialogChoice.
 
-`roboworld/world_data.py` — initial world scaffold (1 city, 1 neighborhood, 3 regions, 2 robots, simple puzzle).
+`roboworld/world_data.py` — initial world scaffold (1 city, 2 neighborhoods, each with 3 regions, 2 robots, simple puzzle).
 
-`roboworld/game.py` — main game loop (exploration + conversation + station unlock).
+`roboworld/game.py` — main game loop (exploration + conversation + station unlock + train travel).
 
 `roboworld/__main__.py` — enables `python -m roboworld` execution.
 
@@ -62,7 +62,7 @@ Add a new region:
 1. Create a `Region` with connections to existing regions.
 2. Add it to the neighborhood's `regions` dict.
 
-Create another neighborhood or city: replicate pattern used for `Central Yard` inside `create_world()`.
+Create another neighborhood or city: replicate pattern used for `Central Yard` and `Harbor Loop` inside `create_world()`.
 
 ## License
 

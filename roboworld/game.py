@@ -50,7 +50,11 @@ class Game:
     # ------------- Exploration Mode -------------
     def show_exploration(self) -> None:
         region = self.current_region()
-        print(f"\nYou are at: {region.name}")
+        # Show location context
+        print(
+            f"\nLocation: {self.current_city().name} → {self.current_neighborhood().name}"
+        )
+        print(f"You are at: {region.name}")
         print(region.description)
         # Connections
         if region.connections:
@@ -74,7 +78,11 @@ class Game:
             print(f"Train Station status: {status}")
 
     def exploration_input(self) -> bool:
-        print("\nOptions: (M)ove  (T)alk  (Q)uit")
+        region = self.current_region()
+        base = "\nOptions: (M)ove  (T)alk  (Q)uit"
+        if region.is_train_station and region.station_unlocked:
+            base = base.replace("  (Q)", "  (R)ide  (Q)")
+        print(base)
         choice = input("> ").strip().lower()
         if choice == "q":
             print("Goodbye.")
@@ -83,6 +91,8 @@ class Game:
             self.handle_move()
         elif choice == "t":
             self.handle_talk()
+        elif choice == "r" and region.is_train_station and region.station_unlocked:
+            self.handle_ride_train()
         else:
             print("Invalid choice. Try again.")
         return True
@@ -176,6 +186,40 @@ class Game:
             print("The panel chimes happily. Local line restored!")
         else:
             print("Incorrect code. Panel resets.")
+
+    # ------------- Train Travel -------------
+    def handle_ride_train(self) -> None:
+        region = self.current_region()
+        if not (region.is_train_station and region.station_unlocked):
+            print("The station isn't operational.")
+            return
+        city = self.current_city()
+        neighborhoods = list(city.neighborhoods.items())
+        # Exclude current neighborhood
+        destinations = [
+            (key, nb)
+            for key, nb in neighborhoods
+            if key != self.player.neighborhood_key
+        ]
+        if not destinations:
+            print("No other stations on this line yet.")
+            return
+        print("Choose a destination neighborhood (blank to cancel):")
+        for i, (_, nb) in enumerate(destinations, start=1):
+            print(f"  {i}. {nb.name}")
+        raw = input("> ").strip()
+        if not raw:
+            return
+        try:
+            idx = int(raw) - 1
+            key, nb = destinations[idx]
+        except (ValueError, IndexError):
+            print("Invalid selection.")
+            return
+        # Travel: arrive at the destination's station region
+        self.player.neighborhood_key = key
+        self.player.region_key = nb.station_region_key
+        print(f"You ride the line to {nb.name} and arrive at its station.")
 
     # ------------- Main Loop -------------
     def run(self) -> None:

@@ -6,9 +6,9 @@ from .models import City, DialogChoice, DialogNode, Neighborhood, Region, Robot,
 
 """Example world content for Roboworld.
 
-Scaffolds 1 city with 1 neighborhood, 3 regions, and 2 robots with dialog
-DAGs. Includes a simple station-unlock puzzle that requires learning an
-override code from a robot first.
+Scaffolds 1 city with 2 neighborhoods. Each neighborhood has 3 regions and
+2 robots with dialog DAGs. Each includes a simple station-unlock puzzle that
+requires learning an override code from a robot first.
 
 Prompt ideas for students:
     # 1. "Generate 5 unique robot personalities and dialog trees"
@@ -18,17 +18,22 @@ Prompt ideas for students:
 
 
 def create_world() -> World:
-    """Create the starting world with one city and one neighborhood.
+    """Create the starting world with one city and two neighborhoods.
 
     Structure:
     - Alpha City
-      - Central Yard (neighborhood)
+      - Central Yard (neighborhood A)
         - Square (start)
         - Workshop
         - Station (train station region, initially locked)
         - Robots: Ada (Workshop), Bolt (Square)
-
-    Puzzle: Learn the override code from Ada to unlock the Station.
+        - Puzzle: Learn override code 'ORANGE-7'
+      - Harbor Loop (neighborhood B)
+        - Dock
+        - Lighthouse
+        - Harbor Station (train station region, initially locked)
+        - Robots: Beacon (Lighthouse), Kelp (Dock)
+        - Puzzle: Learn override code 'BLUE-3'
     """
 
     # --- Ada's dialog (teaches the station override code) ---
@@ -142,7 +147,106 @@ def create_world() -> World:
         station_region_key="station",
     )
 
-    city = City(name="Alpha City", neighborhoods={"central_yard": neighborhood})
+    # --- Second neighborhood: Harbor Loop ---
+    beacon_dialog: Dict[str, DialogNode] = {
+        "start": DialogNode(
+            id="start",
+            text=(
+                "I am Beacon, caretaker of the lighthouse lens. The harbor panel "
+                "requires an override after storms."
+            ),
+            choices=[
+                DialogChoice(text="Ask about the override.", next_id="code"),
+                DialogChoice(text="Admire the lighthouse view.", next_id="view"),
+            ],
+        ),
+        "view": DialogNode(
+            id="view",
+            text=(
+                "Light sweeps the waves in perfect arcs. Precision matters here... and codes."
+            ),
+            choices=[
+                DialogChoice(text="Return to the topic of codes.", next_id="code")
+            ],
+        ),
+        "code": DialogNode(
+            id="code",
+            text=(
+                "Yes. The harbor station listens for 'BLUE-3'. Enter it at the panel to restore the loop."
+            ),
+            choices=[
+                DialogChoice(
+                    text="Memorize 'BLUE-3'.", next_id=None, effects=["gain:BLUE-3"]
+                ),
+            ],
+        ),
+    }
+
+    beacon = Robot(name="Beacon", dialog=beacon_dialog, start_node="start")
+
+    kelp_dialog: Dict[str, DialogNode] = {
+        "start": DialogNode(
+            id="start",
+            text=(
+                "Kelp here. Nets tangled again. If the trains were running, shipments would be on time."
+            ),
+            choices=[
+                DialogChoice(text="Ask where to get help.", next_id="hint"),
+                DialogChoice(text="Wish Kelp luck.", next_id=None),
+            ],
+        ),
+        "hint": DialogNode(
+            id="hint",
+            text=(
+                "Beacon at the lighthouse keeps things orderly. I'd bet they recall the station code."
+            ),
+            choices=[DialogChoice(text="Thank Kelp.", next_id=None)],
+        ),
+    }
+
+    kelp = Robot(name="Kelp", dialog=kelp_dialog, start_node="start")
+
+    dock = Region(
+        key="dock",
+        name="Dock",
+        description="Creaking planks and stacked crates, smelling faintly of brine.",
+        connections={"north": "lighthouse", "east": "harbor_station"},
+        robots=[kelp],
+    )
+
+    lighthouse = Region(
+        key="lighthouse",
+        name="Lighthouse",
+        description="A spiral stair leads to a rotating lens and a steady hum.",
+        connections={"south": "dock"},
+        robots=[beacon],
+    )
+
+    harbor_station = Region(
+        key="harbor_station",
+        name="Harbor Station",
+        description="An alcove with a salt-sprayed panel and timetable.",
+        connections={"west": "dock"},
+        robots=[],
+        is_train_station=True,
+        station_unlocked=False,
+    )
+
+    harbor_regions = {r.key: r for r in (dock, lighthouse, harbor_station)}
+
+    harbor = Neighborhood(
+        name="Harbor Loop",
+        regions=harbor_regions,
+        station_region_key="harbor_station",
+    )
+
+    city = City(
+        name="Alpha City",
+        neighborhoods={
+            "central_yard": neighborhood,
+            "harbor_loop": harbor,
+        },
+    )
     world = World(cities={"alpha_city": city})
     return world
 
